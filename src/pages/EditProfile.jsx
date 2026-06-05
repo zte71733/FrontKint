@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth, useData, useTheme, useLanguage } from '../context/Contexts';
+import { api } from '../api';
 import { t } from '../i18n/translations';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
@@ -20,6 +21,7 @@ export default function EditProfile() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [cropModal, setCropModal] = useState(null); // { img, type: 'avatar' | 'banner' }
 
   useEffect(() => {
@@ -78,11 +80,34 @@ export default function EditProfile() {
     setCropModal(null);
   };
 
-  const handleSave = () => {
-    if (!user) return;
-    const updates = { name, bio, avatar: avatarPreview, banner: bannerPreview, isPrivate };
+  const handleSave = async () => {
+    if (!user || isSaving) return;
+    
+    setIsSaving(true);
+    setError('');
+
+    const updates = { 
+      name, 
+      bio, 
+      avatar: avatarPreview, 
+      banner: bannerPreview, 
+      isPrivate 
+    };
+    
+    try {
+      // Attempt to save to server
+      await api.put('/api/users/me', updates);
+    } catch (err) {
+      console.warn('Persistence to server failed, falling back to local storage:', err);
+      // We don't block the user if the server update fails, 
+      // as it might be in standalone/mock mode
+    }
+
+    // Update local states regardless
     setUsers(users.map(u => u.id === user.id ? { ...u, ...updates } : u));
     updateCurrentUser(updates);
+    
+    setIsSaving(false);
     navigate('/profile');
   };
 
@@ -175,10 +200,15 @@ export default function EditProfile() {
             <div className="pt-8 border-t border-gray-100 dark:border-white/5 flex flex-col sm:flex-row gap-4">
               <button
                 onClick={handleSave}
-                className="flex-1 py-4 md:py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-[1.5rem] md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/25 hover:scale-[1.02] active:scale-98 transition-all uppercase tracking-widest flex items-center justify-center gap-3"
+                disabled={isSaving}
+                className={`flex-1 py-4 md:py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-[1.5rem] md:rounded-[2rem] font-black text-base md:text-lg shadow-xl shadow-blue-500/25 hover:scale-[1.02] active:scale-98 transition-all uppercase tracking-widest flex items-center justify-center gap-3 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                <Save size={22} />
-                {t('common.saveChanges', language)}
+                {isSaving ? (
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save size={22} />
+                )}
+                {isSaving ? (language === 'ru' ? 'Сохранение...' : 'Saving...') : t('common.saveChanges', language)}
               </button>
               <button
                 onClick={() => navigate('/profile')}

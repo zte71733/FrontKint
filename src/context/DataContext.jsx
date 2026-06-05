@@ -21,8 +21,8 @@ export function DataProvider({ children }) {
   const saveDB = useCallback((data) => {
     try {
       localStorage.setItem('kint_db', JSON.stringify(data));
-    } catch {
-      // Ignore errors
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
     }
   }, []);
 

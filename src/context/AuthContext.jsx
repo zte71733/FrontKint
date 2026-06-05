@@ -40,6 +40,24 @@ export function AuthProvider({ children }) {
 
     if (token.startsWith('mock-token-')) {
       const userId = parseInt(token.replace('mock-token-', ''));
+      
+      // Try to get updated user from local DB first
+      try {
+        const dbStr = localStorage.getItem('kint_db');
+        if (dbStr) {
+          const db = JSON.parse(dbStr);
+          const localUser = db.users?.find(u => u.id === userId);
+          if (localUser) {
+            setCurrentUser(localUser);
+            setIsAuthenticated(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load user from mock db', e);
+      }
+
       const mockUser = MOCK_USERS.find(u => u.id === userId);
       if (mockUser) {
         setCurrentUser(mockUser);

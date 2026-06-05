@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth, useData, useTheme, useLanguage } from '../context/Contexts';
 import { t } from '../i18n/translations';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Globe, Trash2, Moon, Sun, AlertTriangle, Download, Key, CheckCircle2, X, ChevronRight } from 'lucide-react';
+import { Shield, Globe, Trash2, Moon, Sun, AlertTriangle, Key, CheckCircle2, X, ChevronRight } from 'lucide-react';
 
 export default function Settings() {
   const { theme, toggle } = useTheme();
@@ -49,22 +49,6 @@ export default function Settings() {
     setSuccess(t('common.passwordChanged', language));
     setPasswordChange({ old: '', new: '', confirm: '' });
     setTimeout(() => setSuccess(''), 3000);
-  };
-
-  const exportData = () => {
-    const userData = {
-      profile: currentUser,
-      posts: posts.filter(p => p.authorId === currentUser.id),
-      achievements: achievements.filter(a => (currentUser.unlockedAchievements || []).includes(a.id)),
-      timestamp: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kint-data-${currentUser.name.replace(/\s+/g, '-').toLowerCase()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const deleteAccount = () => {
@@ -157,16 +141,6 @@ export default function Settings() {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className={sectionClass}>
-          <div className="flex items-center gap-3 mb-6">
-            <Download size={20} className="text-cyan-500" />
-            <h2 className="text-sm font-black tracking-widest uppercase text-gray-500">{t('common.dataManagement', language)}</h2>
-          </div>
-          <button onClick={exportData} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest border transition-all flex items-center justify-center gap-2 ${theme === 'dark' ? 'border-white/10 hover:bg-white/5 text-gray-300' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}>
-            <Download size={16} /> {t('common.exportData', language)}
-          </button>
         </div>
 
         <div className="pt-10 space-y-4">
