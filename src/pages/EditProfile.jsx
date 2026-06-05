@@ -165,11 +165,14 @@ export default function EditProfile() {
 
           <div className="space-y-6 md:space-y-8">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">{t('common.nickname', language)}</label>
+              <div className="flex justify-between items-center ml-4">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('common.nickname', language)}</label>
+                <span className={`text-[10px] font-bold ${name.length >= 30 ? 'text-red-500' : 'text-gray-400'}`}>{name.length}/30</span>
+              </div>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.slice(0, 30))}
                 className={`w-full p-4 md:p-5 rounded-2xl md:rounded-3xl border font-black text-base md:text-lg outline-none transition-all ${theme === 'dark' ? 'bg-gray-950/50 border-gray-800 text-white focus:border-cyan-500/50' : 'bg-gray-50 border-gray-100 text-gray-900 focus:border-cyan-600/50 shadow-inner'}`}
               />
             </div>

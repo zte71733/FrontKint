@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
-import { MOCK_USERS } from '../mockData';
 import { AuthContext } from './Contexts';
 
 export function AuthProvider({ children }) {
@@ -38,43 +37,13 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    if (token.startsWith('mock-token-')) {
-      const userId = parseInt(token.replace('mock-token-', ''));
-      
-      // Try to get updated user from local DB first
-      try {
-        const dbStr = localStorage.getItem('kint_db');
-        if (dbStr) {
-          const db = JSON.parse(dbStr);
-          const localUser = db.users?.find(u => u.id === userId);
-          if (localUser) {
-            setCurrentUser(localUser);
-            setIsAuthenticated(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load user from mock db', e);
-      }
-
-      const mockUser = MOCK_USERS.find(u => u.id === userId);
-      if (mockUser) {
-        setCurrentUser(mockUser);
-        setIsAuthenticated(true);
-        setIsLoading(false);
-        return;
-      }
-    }
-
     try {
       const data = await api.get('/api/users/me');
+      if (data && data.password) delete data.password;
       setCurrentUser(data);
       setIsAuthenticated(true);
     } catch {
-      if (!token.startsWith('mock-token-')) {
-        logout();
-      }
+      logout();
     } finally {
       setIsLoading(false);
     }
@@ -93,18 +62,11 @@ export function AuthProvider({ children }) {
   }, [checkAuth, logout]);
 
   const login = async (email, password) => {
-    const mockUser = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (mockUser) {
-      localStorage.setItem('kint_token', `mock-token-${mockUser.id}`);
-      setCurrentUser(mockUser);
-      setIsAuthenticated(true);
-      return mockUser;
-    }
-
     const data = await api.post('/api/auth/login', { email, password });
     if (data.token) {
       localStorage.setItem('kint_token', data.token);
       const user = await api.get('/api/users/me');
+      if (user && user.password) delete user.password;
       setCurrentUser(user);
       setIsAuthenticated(true);
       return user;
@@ -112,47 +74,8 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (name, email, password) => {
-    try {
-      await api.post('/api/auth/register', { name, email, password });
-      return login(email, password);
-    } catch {
-      const newMockUser = {
-        id: Date.now(),
-        name,
-        email,
-        password,
-        avatar: '',
-        role: 'user',
-        points: 0,
-        level: 1,
-        followingIds: [],
-        followerIds: []
-      };
-      
-      // Update DataContext DB
-      try {
-        const dbStr = localStorage.getItem('kint_db');
-        const db = dbStr ? JSON.parse(dbStr) : {};
-        if (db.users) {
-          db.users.push(newMockUser);
-        } else {
-          db.users = [...MOCK_USERS, newMockUser];
-        }
-        localStorage.setItem('kint_db', JSON.stringify(db));
-      } catch (e) {
-        console.error('Failed to update mock db', e);
-      }
-      
-      MOCK_USERS.push(newMockUser);
-      localStorage.setItem('kint_token', `mock-token-${newMockUser.id}`);
-      setCurrentUser(newMockUser);
-      setIsAuthenticated(true);
-      
-      // Force reload to sync DataContext with new user
-      window.location.href = '/feed';
-      
-      return newMockUser;
-    }
+    await api.post('/api/auth/register', { name, email, password });
+    return login(email, password);
   };
 
   const updateCurrentUser = (updates) => {

@@ -20,9 +20,14 @@ export function SocketProvider({ children }) {
     const token = localStorage.getItem('kint_token');
     if (token && token.startsWith('mock-token-')) return;
 
+    // SECURITY NOTE: Passing tokens in URL is discouraged as they may be logged.
+    // Standard WebSocket doesn't support custom headers in browsers.
+    // In a production app, consider using a one-time ticket or sub-protocols.
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/social/ws?token=${token}`;
+    const wsUrl = `${protocol}//${window.location.host}/api/social/ws?token=${encodeURIComponent(token)}`;
     
+    if (typeof WebSocket === 'undefined') return;
+
     try {
       const ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {

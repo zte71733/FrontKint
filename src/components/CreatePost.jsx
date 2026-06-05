@@ -24,11 +24,21 @@ export default function CreatePost() {
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => setImage(event.target?.result);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert(language === 'ru' ? 'Разрешены только изображения' : 'Only image files are allowed');
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert(language === 'ru' ? 'Файл слишком большой (макс. 5МБ)' : 'File too large (max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => setImage(event.target?.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {

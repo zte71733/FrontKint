@@ -26,13 +26,13 @@ export function DataProvider({ children }) {
     }
   }, []);
 
-  const [users, setUsers] = useState(() => getDB()?.users || MOCK_USERS_LIST);
-  const [posts, setPosts] = useState(() => getDB()?.posts || MOCK_POSTS);
-  const [quests, setQuests] = useState(() => getDB()?.quests || MOCK_QUESTS);
-  const [achievements, setAchievements] = useState(() => getDB()?.achievements || MOCK_ACHIEVEMENTS);
-  const [clans, setClans] = useState(() => getDB()?.clans || MOCK_CLANS);
-  const [clanMessages, setClanMessages] = useState(() => getDB()?.clanMessages || {});
-  const [joinRequests, setJoinRequests] = useState(() => getDB()?.joinRequests || []);
+  const [users, setUsers] = useState(MOCK_USERS_LIST);
+  const [posts, setPosts] = useState(MOCK_POSTS);
+  const [quests, setQuests] = useState(MOCK_QUESTS);
+  const [achievements, setAchievements] = useState(MOCK_ACHIEVEMENTS);
+  const [clans, setClans] = useState(MOCK_CLANS);
+  const [clanMessages, setClanMessages] = useState({});
+  const [joinRequests, setJoinRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const joinedClans = useMemo(() => {
@@ -149,6 +149,11 @@ export function DataProvider({ children }) {
   }, []);
 
   const toggleLike = useCallback(async (postId, userId) => {
+    try {
+      await api.post(`/api/daily/${postId}/like`);
+    } catch (err) {
+      console.warn('Failed to toggle like on server:', err);
+    }
     setPosts(prev => (prev || []).map(p => {
       if (p.id === postId) {
         const likes = (p.likes || []);
@@ -228,6 +233,11 @@ export function DataProvider({ children }) {
   }, [fetchData]);
 
   const blockUser = useCallback(async (blockerId, blockedId) => {
+    try {
+      await api.post('/api/social/block', { target_user_id: blockedId });
+    } catch (err) {
+      console.warn('Failed to block user on server:', err);
+    }
     setUsers(prev => prev.map(u => {
       if (u.id === blockerId) {
         const blocked = u.blockedUsers || [];
@@ -238,6 +248,11 @@ export function DataProvider({ children }) {
   }, []);
 
   const unblockUser = useCallback(async (blockerId, blockedId) => {
+    try {
+      await api.delete(`/api/social/block/${blockedId}`);
+    } catch (err) {
+      console.warn('Failed to unblock user on server:', err);
+    }
     setUsers(prev => prev.map(u => u.id === blockerId ? { ...u, blockedUsers: (u.blockedUsers || []).filter(id => id !== blockedId) } : u));
   }, []);
 
@@ -409,18 +424,33 @@ export function DataProvider({ children }) {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, unlockedAchievements: (u.unlockedAchievements || []).filter(id => id !== achievementId) } : u));
   }, [currentUser]);
 
-  const banUser = useCallback((userId) => {
+  const banUser = useCallback(async (userId) => {
     if (!currentUser?.isAdmin) return;
+    try {
+      await api.post(`/api/admin/users/${userId}/ban`);
+    } catch (err) {
+      console.warn('Failed to ban user on server:', err);
+    }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: true } : u));
   }, [currentUser]);
   
-  const unbanUser = useCallback((userId) => {
+  const unbanUser = useCallback(async (userId) => {
     if (!currentUser?.isAdmin) return;
+    try {
+      await api.post(`/api/admin/users/${userId}/unban`);
+    } catch (err) {
+      console.warn('Failed to unban user on server:', err);
+    }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: false } : u));
   }, [currentUser]);
   
-  const toggleAdmin = useCallback((userId) => {
+  const toggleAdmin = useCallback(async (userId) => {
     if (!currentUser?.isAdmin) return;
+    try {
+      await api.post(`/api/admin/users/${userId}/toggle-admin`);
+    } catch (err) {
+      console.warn('Failed to toggle admin on server:', err);
+    }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, isAdmin: !u.isAdmin, role: !u.isAdmin ? 'admin' : 'user' } : u));
   }, [currentUser]);
 

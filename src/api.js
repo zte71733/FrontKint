@@ -3,11 +3,6 @@ const BASE_URL = ''; // Relative to origin because of Vite proxy
 export async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem('kint_token');
   
-  // Standalone mode: don't even try to hit the proxy if it's a mock session
-  if (token && token.startsWith('mock-token-')) {
-    throw new Error('STANDALONE_MODE');
-  }
-  
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -40,16 +35,22 @@ export async function apiFetch(endpoint, options = {}) {
     const text = await response.text();
     try {
       data = text ? JSON.parse(text) : {};
-    } catch {
-      console.error('Failed to parse JSON:', text);
-      data = { message: 'Invalid response from server' };
+    } catch (e) {
+      console.error('Failed to parse JSON response:', text, e);
+      data = { message: 'Invalid server response format' };
     }
   } else {
-    data = { message: await response.text() || 'Request failed' };
+    try {
+      const text = await response.text();
+      data = { message: text || `Request failed with status ${response.status}` };
+    } catch {
+      data = { message: `Request failed with status ${response.status}` };
+    }
   }
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
+    const errorMsg = data.message || data.error || `Error ${response.status}`;
+    throw new Error(errorMsg);
   }
 
   return data;

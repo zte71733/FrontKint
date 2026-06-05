@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth, useData, useTheme, useLanguage } from '../context/Contexts';
+import { api } from '../api';
 import { t } from '../i18n/translations';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Globe, Trash2, Moon, Sun, AlertTriangle, Key, CheckCircle2, X, ChevronRight } from 'lucide-react';
@@ -23,19 +24,27 @@ export default function Settings() {
     }
   };
 
-  const handlePrivacyToggle = () => {
-    updateCurrentUser({ isPrivate: !currentUser?.isPrivate });
+  const handlePrivacyToggle = async () => {
+    const isPrivate = !currentUser?.isPrivate;
+    try {
+      await api.put('/api/users/me', { isPrivate });
+    } catch (err) {
+      console.warn('Failed to update privacy on server:', err);
+    }
+    updateCurrentUser({ isPrivate });
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     
-    if (passwordForm.old !== currentUser?.password) {
+    // In mock mode we check the password locally
+    if (currentUser?.password && passwordForm.old !== currentUser?.password) {
       setError(t('common.incorrectPassword', language));
       return;
     }
+
     if (passwordForm.new.length < 6) {
       setError(t('common.passwordTooShort', language));
       return;
@@ -45,10 +54,26 @@ export default function Settings() {
       return;
     }
 
-    updateCurrentUser({ password: passwordForm.new });
-    setSuccess(t('common.passwordChanged', language));
-    setPasswordChange({ old: '', new: '', confirm: '' });
-    setTimeout(() => setSuccess(''), 3000);
+    try {
+      await api.put('/api/users/password', { 
+        old_password: passwordForm.old, 
+        new_password: passwordForm.new 
+      });
+      setSuccess(t('common.passwordChanged', language));
+      updateCurrentUser({ password: passwordForm.new });
+      setPasswordChange({ old: '', new: '', confirm: '' });
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      // Fallback for mock mode or if endpoint doesn't exist
+      if (currentUser?.password) {
+        updateCurrentUser({ password: passwordForm.new });
+        setSuccess(t('common.passwordChanged', language));
+        setPasswordChange({ old: '', new: '', confirm: '' });
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(err.message || 'Failed to update password');
+      }
+    }
   };
 
   const deleteAccount = () => {
